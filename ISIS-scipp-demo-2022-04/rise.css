@@ -1,0 +1,15 @@
+.reveal {
+    font-family: sans-serif;
+}
+
+.reveal .sc-sections {
+    display: grid;
+}
+
+.reveal .sc-var-list {
+    display: contents;
+}
+
+#rise-footer {
+    width: 100%;
+}
