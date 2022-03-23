@@ -6,109 +6,108 @@ Output is written to data/hessi_flares.h5
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
-from datetime import date, datetime, time
 from pathlib import Path
 import re
 
-import numpy as np
 import pooch
 import scipp as sc
 
-DATA_DIR = Path(__file__).parent / 'data'
+from common import parse_datetimes
+
+DATA_DIR = Path(__file__).parent / "data"
 
 
 def flare_list_file():
     registry = pooch.create(
-        path=DATA_DIR / 'pooch',
-        base_url='https://hesperia.gsfc.nasa.gov/hessidata/dbase/',
-        registry={
-            'hessi_flare_list.txt': 'md5:89392347dbd0d954e21fe06c9c54c0dd'
-        }
+        path=DATA_DIR / "pooch",
+        base_url="https://hesperia.gsfc.nasa.gov/hessidata/dbase/",
+        registry={"hessi_flare_list.txt": "md5:89392347dbd0d954e21fe06c9c54c0dd"},
     )
-    return open(registry.fetch('hessi_flare_list.txt'), 'r')
+    return open(registry.fetch("hessi_flare_list.txt"), "r")
 
 
 def parse_month(m) -> int:
-    return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].index(m) + 1
-
-
-def parse_date(d) -> date:
-    day, month, year = d.split('-')
-    return date(day=int(day), month=parse_month(month), year=int(year))
-
-
-def parse_time(t) -> time:
-    return time.fromisoformat(t)
-
-
-def parse_datetime(d, t) -> np.datetime64:
-    dt = datetime.combine(parse_date(d), parse_time(t))
-    return np.datetime64(int(dt.timestamp()), 's')
+    return [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ].index(m) + 1
 
 
 def get_quality(flags: list) -> int:
-    pattern = re.compile(r'Q(\d)')
+    pattern = re.compile(r"Q(\d)")
     for flag in flags:
         if match := pattern.match(flag):
             return int(match[1])
     return -1
 
 
-@dataclass
-class Entry:
-    flare_id: int
-    peak_time: np.datetime64
-    duration: float
-    total_counts: float
-    energy_range: list
-    x: float
-    y: float
-    radial: float
-    eclipsed: bool
-    non_solar: bool
-    quality: int
-    flags: list
+FLAGS = (
+    "a0",
+    "a1",
+    "a2",
+    "a3",
+    "An",
+    "DF",
+    "DR",
+    "ED",
+    "EE",
+    "ES",
+    "FE",
+    "FR",
+    "FS",
+    "GD",
+    "GE",
+    "GS",
+    "MR",
+    "NS",
+    "PE",
+    "PS",
+    "Pn",
+    "Qn",
+    "SD",
+    "SE",
+    "SS",
+)
 
-    @classmethod
-    def parse(cls, s) -> Entry:
-        fields = [c for c in s.strip().split(' ') if c]
-        flags = fields[13:]
-        eclipsed = 'ED' in flags or 'EE' in flags or 'ES' in flags
-        non_solar = 'NS' in flags
-        quality = get_quality(flags)
 
-        return cls(
-            flare_id=int(fields[0]),
-            peak_time=parse_datetime(fields[1], fields[3]),
-            duration=float(fields[5]),
-            total_counts=float(fields[7]),
-            energy_range=list(map(float, fields[8].split('-'))),
-            x=float(fields[9]),
-            y=float(fields[10]),
-            radial=float(fields[11]),
-            eclipsed=eclipsed,
-            non_solar=non_solar,
-            quality=quality,
-            flags=flags)
+def parse_line(line):
+    fields = [c for c in line.split(" ") if c]
+    flags = fields[13:]
+    eclipsed = "ED" in flags or "EE" in flags or "ES" in flags
+    non_solar = "NS" in flags
+    quality = get_quality(flags)
+
+    return {
+        "flare_id": int(fields[0]),
+        "peak_time": parse_datetimes(*fields[1:5])[0],
+        "duration": float(fields[5]),
+        "total_counts": float(fields[7]),
+        "energy_range": list(map(float, fields[8].split("-"))),
+        "x": float(fields[9]),
+        "y": float(fields[10]),
+        "radial": float(fields[11]),
+        "eclipsed": eclipsed,
+        "non_solar": non_solar,
+        "quality": quality,
+        **{name: name in flags for name in FLAGS},
+    }
 
 
 def load_txt_file():
-    flare_id = []
-    peak_time = []
-    duration = []
-    total_counts = []
-    energy_range = []
-    x_pos = []
-    y_pos = []
-    radial = []
-    eclipsed = []
-    origin = []
-    quality = []
+    values = {}
 
     # Use to remove duplicates.
-    # Way faster than searching through flare_id for every line.
+    # Way faster than searching through flare_id list for every line.
     seen = set()
 
     with flare_list_file() as f:
@@ -116,61 +115,69 @@ def load_txt_file():
             f.readline()
 
         while line := f.readline().strip():
-            entry = Entry.parse(line)
-            if entry.quality == -1:
+            entry = parse_line(line)
+            if entry["flare_id"] in seen:
                 continue
-            if 'PS' in entry.flags:
-                # might be non-solar
-                continue
-            if entry.flare_id in seen:
-                continue
-            seen.add(entry.flare_id)
+            seen.add(entry["flare_id"])
 
-            flare_id.append(entry.flare_id)
-            peak_time.append(entry.peak_time)
-            duration.append(entry.duration)
-            total_counts.append(entry.total_counts)
-            energy_range.append(entry.energy_range)
-            x_pos.append(entry.x)
-            y_pos.append(entry.y)
-            radial.append(entry.radial)
-            eclipsed.append(entry.eclipsed)
-            origin.append(1 if entry.non_solar else 0)
-            quality.append(entry.quality)
+            for key, val in entry.items():
+                values.setdefault(key, []).append(val)
 
-    origin_legend = sc.DataArray(sc.array(dims=['origin'], values=[0, 1], unit=None),
-                                 coords={'origin': sc.array(dims=['origin'], values=['solar', 'non_solar'])})
-    energy_range = sc.array(dims=['event', 'energy'], values=energy_range, unit='keV')
+    energy_range = sc.array(
+        dims=["event", "energy"], values=values.pop("energy_range"), unit="keV"
+    )
+
+    def event_array(name, unit):
+        return sc.array(dims=["event"], values=values.pop(name), unit=unit)
 
     return sc.DataArray(
-        sc.array(dims=['event'], values=total_counts, unit='count'),
+        event_array("total_counts", "count"),
         coords={
-            'time': sc.array(dims=['event'], values=peak_time, unit='s'),
-            'duration': sc.array(dims=['event'], values=duration, unit='s'),
-            'x': sc.array(dims=['event'], values=x_pos, unit='asec'),
-            'y': sc.array(dims=['event'], values=y_pos, unit='asec'),
-            'radial': sc.array(dims=['event'], values=radial, unit='asec'),
+            "time": event_array("peak_time", "s"),
+            "duration": event_array("duration", "s"),
+            "x": event_array("x", "asec"),
+            "y": event_array("y", "asec"),
+            "radial": event_array("radial", "asec"),
         },
         attrs={
-            'min_energy': energy_range['energy', 0],
-            'max_energy': energy_range['energy', 1],
-            'eclipsed': sc.array(dims=['event'], values=eclipsed),
-            'origin': sc.array(dims=['event'], values=origin, unit=None),
-            'origin_legend': sc.scalar(origin_legend),
-            'quality': sc.array(dims=['event'], values=quality, unit=None),
-            'description': sc.scalar(
-                'X-ray flares recorded by NASA\'s Reuven Ramaty High Energy Solar'
-                ' Spectroscopic Imager (RHESSI) Small Explorer'),
-            'url': sc.scalar(
-                'https://hesperia.gsfc.nasa.gov/rhessi3/data-access/rhessi-data/flare-list/index.html'),
-        }
+            "min_energy": energy_range["energy", 0],
+            "max_energy": energy_range["energy", 1],
+            "quality": event_array("quality", None),
+            **{key: event_array(key, None) for key in list(values)},
+            "description": sc.scalar(
+                "X-ray flares recorded by NASA's Reuven Ramaty High Energy Solar"
+                " Spectroscopic Imager (RHESSI) Small Explorer"
+            ),
+            "url": sc.scalar(
+                "https://hesperia.gsfc.nasa.gov/rhessi3/data-access/rhessi-data/flare-list/index.html"
+            ),
+            "citation": sc.scalar("https://doi.org/10.1023/A:1022428818870"),
+        },
     )
+
+
+def prefilter(da):
+    da = da.copy()
+    del da.attrs["flare_id"]
+    da = da[~da.attrs.pop("eclipsed")]
+    # no quality flag
+    da = da[da.attrs["quality"] >= sc.index(0)]
+    # PS - Possible Solar Flare; in front detectors, but no position
+    da = da[~da.attrs.pop("PS")]
+
+    for flag in FLAGS:
+        try:
+            del da.attrs[flag]
+        except KeyError:
+            pass
+    return da
 
 
 def main():
     da = load_txt_file()
-    da.to_hdf5(DATA_DIR / 'hessi_flares.h5')
+    da = prefilter(da)
+    da.to_hdf5(DATA_DIR / "hessi_flares.h5")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
