@@ -158,6 +158,7 @@ def load_txt_file():
 
 def prefilter(da):
     da = da.copy()
+    del da.coords['radial']
     del da.attrs["flare_id"]
     da = da[~da.attrs.pop("eclipsed")]
     # no quality flag
