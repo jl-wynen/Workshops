@@ -1,0 +1,23 @@
+.reveal {
+    font-family: sans-serif;
+}
+
+.reveal .sc-sections {
+    display: grid;
+}
+
+.reveal .sc-var-list {
+    display: contents;
+}
+
+.reveal .sc-var-data {
+    display: none;
+}
+
+.sc-var-list > li:nth-child(2n+1) > div, .sc-var-list > li:nth-child(2n+1) > label, .sc-var-list > li:nth-child(2n+1) > .sc-var-name span {
+    background-color: #e4e4e4 !important;
+}
+
+#rise-footer {
+    width: 100%;
+}
