@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
+import numpy as np
 import pooch
 import scipp as sc
 
@@ -124,15 +125,16 @@ def load_txt_file():
                 values.setdefault(key, []).append(val)
 
     energy_range = sc.array(
-        dims=["event", "energy"], values=values.pop("energy_range"), unit="keV"
+        dims=["flare", "energy"], values=values.pop("energy_range"), unit="keV"
     )
 
     def event_array(name, unit):
-        return sc.array(dims=["event"], values=values.pop(name), unit=unit)
+        return sc.array(dims=["flare"], values=values.pop(name), unit=unit)
 
     return sc.DataArray(
-        event_array("total_counts", "count"),
+        sc.ones(sizes={"flare": len(values["peak_time"])}),
         coords={
+            "total_counts": event_array("total_counts", "count"),
             "time": event_array("peak_time", "s"),
             "duration": event_array("duration", "s"),
             "x": event_array("x", "asec"),
@@ -158,7 +160,8 @@ def load_txt_file():
 
 def prefilter(da):
     da = da.copy()
-    del da.coords['radial']
+    del da.coords["total_counts"]
+    del da.coords["radial"]
     del da.attrs["flare_id"]
     da = da[~da.attrs.pop("eclipsed")]
     # no quality flag
@@ -174,9 +177,59 @@ def prefilter(da):
     return da
 
 
+def remove_events(da, rng):
+    """
+    Define fictitious efficiencies for the different collimators of the detector.
+    Uses a 3x3 detector grid with arbitrarily chosen apertures.
+    Events are removed randomly based on the efficiencies such that the data
+    can be normalised using `events / efficiency`.
+    """
+    print("removing events based on detector efficiency")
+    collimator_x = sc.array(
+        dims=["x"], values=[-1000, -300, 300, 1000], unit="asec", dtype="float64"
+    )
+    collimator_y = sc.array(
+        dims=["y"], values=[-600, -200, 200, 600], unit="asec", dtype="float64"
+    )
+    efficiency = sc.DataArray(
+        sc.array(
+            dims=["x", "y"],
+            values=np.array(
+                [[0.9, 0.95, 0.77], [0.98, 0.89, 0.82], [0.93, 0.94, 0.91]]
+            ),
+        ),
+        coords={"x": collimator_x, "y": collimator_y},
+    )
+
+    da = sc.sort(da, "x")
+    filtered = []
+    for i in range(len(collimator_x) - 1):
+        column = sc.sort(da["x", collimator_x[i] : collimator_x[i + 1]], "y")
+        filtered.append(column["y", -1e8 * collimator_y.unit : collimator_y[0]])
+        filtered.append(column["y", collimator_y[-1] : 1e8 * collimator_y.unit])
+        for j in range(len(collimator_y) - 1):
+            cell = column["y", collimator_y[j] : collimator_y[j + 1]]
+            n = cell.sizes["flare"]
+            selected = np.sort(
+                rng.choice(
+                    n, size=int(n * efficiency["x", i]["y", j].value), replace=False
+                )
+            )
+            filtered.append(cell[selected])
+
+    filtered.append(da["x", -1e8 * collimator_x.unit : collimator_x[0]])
+    filtered.append(da["x", collimator_x[-1] : 11e8 * collimator_x.unit])
+
+    out = sc.sort(sc.concat(filtered, "flare"), "time")
+    out.attrs["detector_efficiency"] = sc.scalar(efficiency)
+    return out
+
+
 def main():
+    rng = np.random.default_rng(9274)
     da = load_txt_file()
     da = prefilter(da)
+    da = remove_events(da, rng)
     da.to_hdf5(DATA_DIR / "hessi_flares.h5")
 
 
