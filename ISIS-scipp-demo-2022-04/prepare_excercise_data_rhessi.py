@@ -152,6 +152,9 @@ def prefilter(da):
     da = da[~da.attrs.pop("eclipsed")]
     # no quality flag
     da = da[da.attrs["quality"] >= sc.index(0)]
+    # only high quality
+    da = da[da.attrs["quality"] < sc.index(3)]
+    del da.attrs["quality"]
     # PS - Possible Solar Flare; in front detectors, but no position
     da = da[~da.attrs.pop("PS")]
 
