@@ -98,12 +98,12 @@ class Entry:
         fields = [c for c in s.strip().split(" ") if c]
         if len(fields) != 7:
             return None
-        dat, dur = parse_datetimes(*fields[0:4])
+        times = parse_datetimes(*fields[0:4])
         pos = parse_position(fields[5])
 
         return cls(
-            peak_time=dat,
-            duration=dur,
+            peak_time=times["peak_time"],
+            duration=times["duration"],
             class_=fields[4],
             x=pos[0],
             y=pos[1],

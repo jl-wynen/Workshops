@@ -1,5 +1,5 @@
 from datetime import date, datetime, time, timedelta
-from typing import Tuple
+from typing import Dict, Union
 
 import numpy as np
 
@@ -30,7 +30,7 @@ def parse_time(t) -> time:
     return time.fromisoformat(t)
 
 
-def parse_datetimes(d, start, peak, end) -> Tuple[np.datetime64, int]:
+def parse_datetimes(d, start, peak, end) -> Dict[str, Union[np.datetime64, int]]:
     d = parse_date(d)
     start = parse_time(start)
     peak = parse_time(peak)
@@ -42,7 +42,9 @@ def parse_datetimes(d, start, peak, end) -> Tuple[np.datetime64, int]:
     end_date = d + timedelta(days=1) if end < start else d
     end_datetime = datetime.combine(end_date, end)
 
-    return (
-        np.datetime64(int(peak_datetime.timestamp()), "s"),
-        int((end_datetime - start_datetime).total_seconds()),
-    )
+    return {
+        "peak_time": np.datetime64(int(peak_datetime.timestamp()), "s"),
+        "start_time": np.datetime64(int(start_datetime.timestamp()), "s"),
+        "end_time": np.datetime64(int(end_datetime.timestamp()), "s"),
+        "duration": int((end_datetime - start_datetime).total_seconds()),
+    }

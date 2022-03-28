@@ -27,23 +27,6 @@ def flare_list_file():
     return open(registry.fetch("hessi_flare_list.txt"), "r")
 
 
-def parse_month(m) -> int:
-    return [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-    ].index(m) + 1
-
-
 def get_quality(flags: list) -> int:
     pattern = re.compile(r"Q(\d)")
     for flag in flags:
@@ -83,6 +66,7 @@ FLAGS = (
 
 def parse_line(line):
     fields = [c for c in line.split(" ") if c]
+    times = parse_datetimes(*fields[1:5])
     flags = fields[13:]
     eclipsed = "ED" in flags or "EE" in flags or "ES" in flags
     non_solar = "NS" in flags
@@ -90,8 +74,9 @@ def parse_line(line):
 
     return {
         "flare_id": int(fields[0]),
-        "peak_time": parse_datetimes(*fields[1:5])[0],
-        "duration": float(fields[5]),
+        "peak_time": times["peak_time"],
+        "start_time": times["start_time"],
+        "end_time": times["end_time"],
         "total_counts": float(fields[7]),
         "energy_range": list(map(float, fields[8].split("-"))),
         "x": float(fields[9]),
@@ -135,8 +120,9 @@ def load_txt_file():
         sc.ones(sizes={"flare": len(values["peak_time"])}),
         coords={
             "total_counts": event_array("total_counts", "count"),
-            "time": event_array("peak_time", "s"),
-            "duration": event_array("duration", "s"),
+            "peak_time": event_array("peak_time", "s"),
+            "start_time": event_array("start_time", "s"),
+            "end_time": event_array("end_time", "s"),
             "x": event_array("x", "asec"),
             "y": event_array("y", "asec"),
             "radial": event_array("radial", "asec"),
@@ -220,7 +206,7 @@ def remove_events(da, rng):
     filtered.append(da["x", -1e8 * collimator_x.unit : collimator_x[0]])
     filtered.append(da["x", collimator_x[-1] : 11e8 * collimator_x.unit])
 
-    out = sc.sort(sc.concat(filtered, "flare"), "time")
+    out = sc.sort(sc.concat(filtered, "flare"), "peak_time")
     out.attrs["detector_efficiency"] = sc.scalar(efficiency)
     return out
 
