@@ -1,11 +1,11 @@
 # Requires scipp/io/hdf5.py from 1cf68ee23
 
+from io import BytesIO
+
 from scipp.testing import strategies as scst
 import scipp as sc
 
 from hypothesis import given
-
-from io import BytesIO
 
 
 @given(scst.dataarrays())
