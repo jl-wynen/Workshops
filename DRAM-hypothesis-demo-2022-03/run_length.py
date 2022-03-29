@@ -1,11 +1,8 @@
-from hypothesis import given, example
+from hypothesis import example, given, settings, Verbosity
 from hypothesis import strategies as st
 
 
 def encode(input_string):
-    # fix
-    if not input_string:
-        return []
     count = 1
     prev = ''
     lst = []
@@ -14,7 +11,7 @@ def encode(input_string):
             if prev:
                 entry = (prev, count)
                 lst.append(entry)
-            count = 1  # comment out
+            count = 1
             prev = character
         else:
             count += 1
@@ -31,6 +28,5 @@ def decode(lst):
 
 
 @given(st.text())
-# @example('')  # add later
 def test_decode_inverts_encode(s):
     assert decode(encode(s)) == s
