@@ -2,6 +2,7 @@ from hypothesis import example, given, settings, Verbosity
 from hypothesis import strategies as st
 
 
+# 'aabccca' -> ('a', 2), ('b', 1), ('c', 3), ('a', 1)
 def encode(input_string):
     count = 1
     prev = ''
