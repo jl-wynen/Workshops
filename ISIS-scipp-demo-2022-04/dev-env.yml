@@ -1,0 +1,50 @@
+# Environment for developing the exercise and making / running slideshow.
+
+channels:
+  - conda-forge
+  - nodefaults
+
+dependencies:
+  - pip
+  - scipp::scippneutron==0.5.1
+  - markupsafe>=1.1.1,<2.1.0 # see https://github.com/pallets/markupsafe/issues/284
+  - ipykernel = 6.3.1  # issue with pythreejs 3d plotting
+  - ipympl
+  - ipywidgets
+  - ipython
+  - matplotlib-base
+  - numpy >= 1.20.0
+  - python
+  - pythreejs
+  - pyyaml
+  - mantid::mantid
+  - h5py
+  - python-graphviz
+  - xarray
+  - pandas
+  - scipy >= 1.7.0
+  - yapf == 0.30.0
+  - flake8
+  - mccabe
+  - jupyterlab
+  - jupyterlab_code_formatter
+  - jupyterlab_widgets
+  - jupyterlab-lsp
+  - jupyterlab-git
+  - jupyterlab-spellchecker
+  - pyflakes
+  - python-lsp-server
+  - pyqt
+  - rich
+  - rise
+  - pip:
+      - better_exceptions
+      - jupyterlab-skip-traceback
+      - pyls-flake8
+      - pyls-mypy
+      - nb-clean
+      - sphinx-autodoc-typehints>=1.17.0
+      - https://github.com/jl-wynen/jupyter-aiphi/archive/refs/heads/main.zip
+
+variables:
+  BETTER_EXCEPTIONS: 1
