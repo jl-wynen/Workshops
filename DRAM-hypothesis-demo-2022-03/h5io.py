@@ -2,13 +2,13 @@
 
 from io import BytesIO
 
+from hypothesis import given, settings
 from scipp.testing import strategies as scst
 import scipp as sc
 
-from hypothesis import given
-
 
 @given(scst.dataarrays())
+@settings(max_examples=300)
 def test_data_array_hdf5(da):
     f = BytesIO()
     da.to_hdf5(filename=f)
