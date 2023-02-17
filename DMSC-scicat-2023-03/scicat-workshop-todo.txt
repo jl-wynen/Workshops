@@ -1,0 +1,15 @@
+SciCat Workshopw
+
+- setup instructions
+- create raw dataset
+- make up simple workflow:
+  - ideally use metadata
+  - manually set param that needs to be in derived metadata (lambda range? ROI?)
+  - scipp or numpy
+  
+- 2nd part:
+    - get derived data of other group: with different value of param
+    - plot it
+    - is there enough metadata in scicat to find and plot the data?
+    - the relevant bit is what comes before
+        sc.io.open_hdf(...).plot()
