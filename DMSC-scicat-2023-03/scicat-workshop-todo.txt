@@ -1,6 +1,10 @@
-SciCat Workshopw
+SciCat Workshop
+---------------
 
 - setup instructions
+  - pin versions
+  - requirements.txt
+  - TEST!
 - create raw dataset
 - make up simple workflow:
   - ideally use metadata
@@ -13,3 +17,11 @@ SciCat Workshopw
     - is there enough metadata in scicat to find and plot the data?
     - the relevant bit is what comes before
         sc.io.open_hdf(...).plot()
+
+
+Workflow Ideas
+--------------
+
+- 1d line with peaks w/ background; select ROi for background; subtract the background
+  store ROI in metadata
+  how to make selection interesting / ambiguous? (want different results to emphasize importance of metadata)

@@ -1,0 +1,14 @@
+name: scicat-workshop
+
+channels:
+  - conda-forge
+  - nodefaults
+  - scipp
+
+dependencies:
+  - h5py
+  - jupyterlab
+  - jupyterlab_widgets
+  - pyscicat
+  - scipp
+  - scitacean
