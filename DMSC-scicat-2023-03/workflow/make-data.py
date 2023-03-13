@@ -72,7 +72,7 @@ def build_dataset(
         access_groups=["ess"],
 
         source_folder=RemotePath("/mnt/groupdata/scicat/upload/scicat-workshop/20230322"),
-        creation_location="ess/dmsc/peakmeister",
+        creation_location="ess/dmsc/PeakMeister",
         data_format="scipp-hdf5",
         end_time=parse("2023-03-13T12:57:03Z"),
         license="CC-BY-4.0",
