@@ -15,7 +15,9 @@ dependencies:
   - matplotlib-base
   - numpy
   - plopp
-  - pyscicat
   - python = 3.9
   - scipp = 23.01.1
   - scitacean
+  - pip
+  - pip:
+      - pyscicat = 0.2.6
