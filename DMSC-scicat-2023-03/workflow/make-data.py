@@ -1,11 +1,14 @@
 """Generate input data for exercises."""
-from dateutil.parser import parse
 import numpy as np
 import plopp as pp
 import scipp as sc
-from scitacean import Dataset, RemotePath
+from dateutil.parser import parse
+from scitacean import Client, Dataset
+from scitacean.transfer.ssh import SSHFileTransfer
 
 pp.patch_scipp()
+
+TOKEN = ""
 
 ALL_PEAKS = [
     [(0.41, 0.1, 1.0), (0.65, 0.12, 1.5), (0.89, 0.06, 1.0)],
@@ -55,8 +58,11 @@ def build_data(
 
 
 def build_dataset(
-    i: int, x_range: tuple[float, float, float], proton_charge: float,filename:str,
-        total_counts: int
+    i: int,
+    x_range: tuple[float, float, float],
+    proton_charge: float,
+    filename: str,
+    total_counts: int,
 ) -> Dataset:
     ds = Dataset(
         type="raw",
@@ -67,30 +73,41 @@ def build_dataset(
         orcid_of_owner="https://orcid.org/0000-0002-3761-3201",
         principal_investigator="Massimiliano Novelli;Jan-Lukas Wynen",
         contact_email="Max.Novelli@ess.eu;jan-lukas.wynen@ess.eu",
-
-        owner_group="dmsc",
-        access_groups=["ess"],
-
-        source_folder=RemotePath("/mnt/groupdata/scicat/upload/scicat-workshop/20230322"),
+        owner_group="ess",
+        access_groups=["dmsc"],
         creation_location="ess/dmsc/PeakMeister",
         data_format="scipp-hdf5",
-        end_time=parse("2023-03-13T12:57:03Z"),
+        end_time=parse("2023-03-15T14:10:00Z"),
         license="CC-BY-4.0",
-
-        instrument_id="", # TODO
-        proposal_id="", # TODO
-        sample_id="", # TODO
-
-        meta={'proton_charge': {'value': proton_charge, 'unit': 'uAh'},
-              'wavelength_min': {'value': x_range[0], 'unit': 'angstrom'},
-              'wavelength_max': {'value': x_range[1], 'unit': 'angstrom'},
-              'wavelength_bins': {'value': x_range[2], 'unit': ''},
-              'total_counts': {'value': total_counts, 'unit': 'counts'}
-              },
+        instrument_id="8e719050-c9b7-4141-b107-12f58c5fb2eb",
+        proposal_id="276577",
+        sample_id="170f8c5e-6203-4a58-8b5c-8af9460c0250",
+        meta={
+            "proton_charge": {"value": proton_charge, "unit": "uAh"},
+            "wavelength_min": {"value": x_range[0], "unit": "angstrom"},
+            "wavelength_max": {"value": x_range[1], "unit": "angstrom"},
+            "wavelength_bins": {"value": x_range[2], "unit": ""},
+            "total_counts": {"value": total_counts, "unit": "counts"},
+        },
     )
     ds.add_local_files(filename, base_path="data")
 
     return ds
+
+
+def upload_datasets(datasets: list[Dataset]) -> None:
+    client = Client.from_token(
+        url="https://staging.scicat.ess.eu/api/v3",
+        token=TOKEN,
+        file_transfer=SSHFileTransfer(
+            host="dmsc",
+            source_folder="/mnt/groupdata/scicat/upload/scicat-workshop/20230322/{pid.pid}",
+        ),
+    )
+
+    for d in datasets:
+        print(f"Uploading {d.name}")
+        client.upload_new_dataset_now(d)
 
 
 def main() -> None:
@@ -107,12 +124,14 @@ def main() -> None:
         filenames[i] = f"data/raw_{label}.h5"
         d.to_hdf5(filenames[i])
 
-    dsets = {
-        i: build_dataset(i, *args, filenames[i], int(da.sum().value))
+    dsets = [
+        build_dataset(i, *args, filenames[i], int(da.sum().value))
         for (i, da), *args in zip(data.items(), X_RANGES, PROTON_CHARGES)
-    }
-    for ds in dsets.values():
+    ]
+    for ds in dsets:
         print(ds)
+        print(list(ds.files))
+    # upload_datasets(dsets)
 
     pp.plot(data, ls="-", marker=None)
     pp.show()
