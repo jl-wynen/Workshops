@@ -6,7 +6,7 @@ channels:
   - scipp
 
 dependencies:
-  - h5py = 3.7.0
+  - h5py == 3.7.0
   - ipympl
   - ipython
   - ipywidgets
@@ -15,9 +15,9 @@ dependencies:
   - matplotlib-base
   - numpy
   - plopp
-  - python = 3.9
-  - scipp = 23.01.1
+  - python == 3.9
+  - scipp == 23.01.1
   - scitacean
   - pip
   - pip:
-      - pyscicat = 0.2.6
+      - pyscicat == 0.2.6
