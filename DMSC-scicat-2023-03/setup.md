@@ -2,9 +2,11 @@
 
 ## Install requirements
 
+**WARNING**
+
 You should really make a new environment for this because all package versions are
-pinned and you don't want to mess up your production environment.
-This hopefully avoids 'Help, it doesn't work with my 2 year old setup!'
+pinned, and you don't want to mess up your production environment.
+This hopefully avoids situations like 'Help, it doesn't work with my 2-year-old setup!'
 
 Pick either conda or pip:
 
@@ -42,7 +44,8 @@ Host login.esss.dk
     IdentityFile <private-key-file>
 ```
 
-`IdentityFile` should not be needed if the agent is set up correctly but the rest is important.
+`IdentityFile` is optional in case your agent is not set up correctly.
+But the rest is important.
 
 You may choose a different host name. You'll just have to use that in the tutorial
 notebook instead of the default `login.esss.dk`.
